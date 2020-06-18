@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<style>
+	:root {
+		--digitWidth: 80px;
+		--segSize: calc(var(--digitWidth) * 0.1);
+		--segPad: 2px;
+	}
+	
+	.operator {
+		position: relative;
+		width: calc(var(--digitWidth) * 0.75);
+		height: calc(var(--digitWidth) * 0.75);
+		margin: calc(2 * var(--segSize) + var(--segPad));
+		top: calc(var(--digitWidth) - var(--digitWidth) * 0.375);
+		float: left;
+	}
+	
+	.digit {
+		position: relative;
+		width: var(--digitWidth);
+		height: calc(var(--digitWidth) * 2);
+		margin: calc(2 * var(--segSize) + var(--segPad));
+		float: left;
+	}
+
+	.segH {
+		display: block;
+		position: absolute;
+		width: calc(100% - (var(--segSize) + var(--segPad)) * 2);
+		height: 0;
+		margin: 0 var(--segPad);
+	}
+
+	.segH span {
+		display: block;
+		position: absolute;
+		width: 100%;
+		height: 0;
+		margin: 0;
+	}
+
+	.segH .segBody {
+		width: 100%;
+		height: calc(var(--segSize) * 2);
+		top: calc(-1 * var(--segSize));
+		left: calc(var(--segSize));
+	}
+	
+	.segH .segPartA {
+		top: calc(-1 * var(--segSize));
+		border-bottom: var(--segSize) solid dodgerblue;
+		border-left: var(--segSize) solid transparent;
+		border-right: var(--segSize) solid transparent;
+	}
+
+	.segH .segPartB {
+		top: 0;
+		border-top: var(--segSize) solid dodgerblue;
+		border-left: var(--segSize) solid transparent;
+		border-right: var(--segSize) solid transparent;
+	}
+
+	.segV {
+		display: block;
+		position: absolute;
+		height: calc(50% - (var(--segSize) + var(--segPad)) * 2);
+		width: 0;
+		margin: var(--segPad) 0;
+	}
+
+	.segV span {
+		display: block;
+		position: absolute;
+		width: 0;
+		height: 100%;
+		margin: 0;
+	}
+
+	.segV .segBody {
+		width: calc(var(--segSize) * 2);
+		height: 100%;
+		top: calc(var(--segSize));
+		left: calc(var(--segSize) * -1);
+	}
+	
+	.segV .segPartA {
+		left: calc(-1 * var(--segSize));
+		border-right: var(--segSize) solid dodgerblue;
+		border-top: var(--segSize) solid transparent;
+		border-bottom: var(--segSize) solid transparent;
+	}
+
+	.segV .segPartB {
+		left: 0;
+		border-left: var(--segSize) solid dodgerblue;
+		border-top: var(--segSize) solid transparent;
+		border-bottom: var(--segSize) solid transparent;
+	}
+	
+	.seg-off {
+		opacity: 0.1;
+	}
+	
+	.holdingZone {
+		display: table;
+		position: relative;
+		width: calc(var(--digitWidth));
+		margin: calc(var(--segSize) * 4) auto calc(var(--segSize) * 3) auto;
+	}
+	
+	.button {
+		background-color: #4CAF50;
+		border: none;
+		color: white;
+		padding: 8px 12px;
+		text-align: center;
+		text-decoration: none;
+		display: inline-block;
+		font-size: 16px;
+		margin: 4px 0;
+		cursor: pointer;
+	}
+	
+	.solved {
+		background-color: dodgerblue !important;
+	}
+	
+	html {
+		width: 100%;
+		height: 100%;		
+	}
+	
+	body {
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		overflow: hidden;
+		-moz-user-select: none;
+		-webkit-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+		-o-user-select: none;
+	}
+
+	</style>
+</head>
+<body unselectable="on" onselectstart="return false;">
+	<div class="holdingZone">
+		<div name="holdIndicator" class="segH" style="left: 0; top: 50%;">
+			<span class="segPartA"></span>
+			<span class="segPartB"></span>
+			<span style="left: var(--segSize); top: -10px; text-align: center;" onmousedown="return false;">
+				<strong>?</strong>
+			</span>
+		</div>
+	</div>
+	<div id="container" style="display: table; margin: 0 auto;">
+	</div>
+	<div style="display: table; margin: calc(var(--segSize) * 2) auto 0 auto">
+		<input id="btnReset" type="button" class="button" dir="rtl" value="נסו שוב" onclick="resetSticks(); return false;">
+	</div>
+	<script type="text/javascript">
+	
+		var digitValToSegments =
+		   [[1,1,1,0,1,1,1], // 0
+			[0,0,0,0,0,1,1], // 1
+			[0,1,1,1,1,1,0], // 2
+			[0,0,1,1,1,1,1], // 3
+			[1,0,0,1,0,1,1], // 4
+			[1,0,1,1,1,0,1], // 5
+			[1,1,1,1,1,0,1], // 6
+			[0,0,1,0,0,1,1], // 7
+			[1,1,1,1,1,1,1], // 8
+			[1,0,1,1,1,1,1]]; // 9
+
+		var digitToDigit =
+		   [[[8,[3]],[6,[3,5]],[9,[1,3]]],			// #0 to 8, 6*, 9*
+			[[7,[2]]],								// #1 to 7
+			[[3,[1,6]]],							// #2 to 3*
+			[[9,[0]],[2,[1,6]],[5,[0,5]]],			// #3 to 9, 2*, 5*
+			[],										// #4 to nothing
+			[[6,[1]],[9,[5]],[3,[0,5]]],			// #5 to 6, 9, 3*
+			[[5,[1]],[8,[5]],[9,[1,5]],[0,[3,5]]],	// #6 to 5, 8, 9*, 0*
+			[[1,[2]]],								// #7 to 1
+			[[0,[3]],[6,[5]],[9,[1]]],				// #8 to 0, 6, 9
+			[[3,[0]],[5,[5]],[8,[1]],[0,[1,3]],[6,[1,5]]]];	// #9 to 3, 5, 8, 0*, 6*
+
+		var isSolved = false;	
+		
+		var elBtnReset = document.getElementById('btnReset');
+		
+		var numOfMovesMade = 0;
+		var isHoldingStick = false;
+		var forcedDropTarget = null;
+		var forcedDropIndices = [];
+		var sourceSeg = null;
+		
+		var elHoldIndicator = document.getElementsByName('holdIndicator')[0];
+		
+		function setHeldStickVisible(state) {
+			elHoldIndicator.style.display = state ? 'block' : 'none';
+			clearSelection();
+		}
+		
+		function clearSelection() {
+			if (document.selection) {
+				document.selection.empty();
+			} else if (window.getSelection) {
+				window.getSelection().removeAllRanges();
+			}
+		}
+		
+		setHeldStickVisible(false);
+		
+		function resetSticks() {
+			if (isSolved)
+				return;
+			
+			elBtnReset.style.opacity = '0.5';
+			numOfMovesMade = 0;
+			isHoldingStick = false;
+			setHeldStickVisible(false);
+			forcedDropTarget = null;
+			sourceSeg = null;
+			
+			readQuestion();
+		}
+		
+		function onSegClick(seg) {
+			if (isSolved)
+				return;
+
+			var digit = seg.parentElement;
+			var digitCurrVal = readDigitSegs(digit);
+			var segIdx = parseInt(seg.getAttribute('name'));
+			
+			if (isHoldingStick) {
+				// can only drop matchstick on segments that are off
+				if (getSegState(seg))
+					return false;
+				
+				if (seg == sourceSeg) {
+					elBtnReset.style.opacity = '0.5';
+					numOfMovesMade = 0;
+					setSegState(seg, true);
+					isHoldingStick = false;
+					setHeldStickVisible(false);
+					forcedDropTarget = null;
+					checkAnswer();
+					return true;
+				}
+
+				if (forcedDropTarget == null) {
+					if (digitCurrVal == -1)
+						return false;
+					
+					var digitRelations = digitToDigit[digitCurrVal];
+					
+					// check for direct toggle
+					for (var i = 0; i < digitRelations.length; i++) {
+						var rel = digitRelations[i];
+						if (rel[1].length == 1 && rel[1][0] == segIdx) {
+							setSegState(seg, true);
+							isHoldingStick = false;
+							setHeldStickVisible(false);
+							checkAnswer();
+							return true;
+						}
+					}
+				}
+				
+				if (forcedDropTarget != digit)
+					return false;
+				
+				for (var i = 0; i < forcedDropIndices.length; i++) {
+					if (forcedDropIndices[i] == segIdx) {
+						setSegState(seg, true);
+						isHoldingStick = false;
+						setHeldStickVisible(false);
+						forcedDropTarget = null;
+						checkAnswer();
+						return true;
+					}
+				}
+
+				return false;
+			}
+			// Not holding a matchstick
+			else {
+				if (numOfMovesMade > 0)
+					return false;
+
+				if (digitCurrVal == -1)
+					return false;
+
+				// can only pick-up matchstick from segments that are on
+				if (!getSegState(seg))
+					return false;
+					
+				var digitRelations = digitToDigit[digitCurrVal];
+				
+				// check for direct toggle
+				for (var i = 0; i < digitRelations.length; i++) {
+					var rel = digitRelations[i];
+					if (rel[1].length == 1 && rel[1][0] == segIdx) {
+						elBtnReset.style.opacity = '1';
+						numOfMovesMade++;
+						setSegState(seg, false);
+						sourceSeg = seg;
+						isHoldingStick = true;
+						setHeldStickVisible(true);
+						forcedDropTarget = null;
+						return true;
+					}
+				}
+				
+				// check for forced-self drops
+				var validSelfDropIndices = [];
+				
+				for (var i = 0; i < digitRelations.length; i++) {
+					var rel = digitRelations[i];
+					if (rel[1].length < 2)
+						continue;
+					
+					if (rel[1][0] == segIdx || rel[1][1] == segIdx) {
+						validSelfDropIndices.push(rel[1][0]);
+						validSelfDropIndices.push(rel[1][1]);
+					}
+				}
+
+				if (validSelfDropIndices.length > 0) {
+					elBtnReset.style.opacity = '1';
+					numOfMovesMade++;
+					setSegState(seg, false);
+					sourceSeg = seg;
+					isHoldingStick = true;
+					setHeldStickVisible(true);
+					forcedDropTarget = digit;
+					forcedDropIndices = validSelfDropIndices;
+					return true;
+				}
+				
+				return false;
+			}
+		}		
+			
+		function toggleSeg(seg) {
+			setSegState(seg, !getSegState(seg));
+		}
+		
+		function getSegState(seg) {
+			return !seg.classList.contains("seg-off");
+		}
+		
+		function setSegState(seg, isOn) {
+			if (isOn)
+				seg.classList.remove("seg-off");
+			else
+				seg.classList.add("seg-off");
+		}
+		
+		function readDigitSegs(digit) {
+			var segs = [];
+			for (var i = 0; i < 7; i++)
+				segs.push(getSegState(digit.children[i]));
+			
+			for (var i = 0; i <= 9; i++) {
+				var segs2 = digitValToSegments[i];
+				var equal = true;
+				for (var j = 0; equal && j < 7; j++)
+					equal = segs[j] == segs2[j];
+				if (equal)
+					return i;
+			}
+			
+			return -1;
+		}
+		
+		function setDigit(digit, value) {
+			var segs = digitValToSegments[value];
+			for (var i = 0; i < 7; i++)
+				setSegState(digit.children[i], segs[i]);
+			return digit;
+		}
+		
+		var nextDigitId = 0;
+		function createDigitElement() {
+			var digitId = nextDigitId;
+			nextDigitId++;
+			
+			var digitHtml =
+				'<div name="0" class="segV" style="left: 0; top: 0;">' +
+				'	<span class="segPartA"></span>' +
+				'	<span class="segPartB"></span>' +
+				'	<span class="segBody" onclick="onSegClick(this.parentElement)"></span>' +
+				'</div>' +
+				'<div name="1" class="segV" style="left: 0; bottom: calc(var(--segSize) * 2);">' +
+				'	<span class="segPartA"></span>' +
+				'	<span class="segPartB"></span>' +
+				'	<span class="segBody" onclick="onSegClick(this.parentElement)"></span>' +
+				'</div>' +
+				'<div name="2" class="segH" style="top: 0;">' +
+				'	<span class="segPartA"></span>' +
+				'	<span class="segPartB"></span>' +
+				'	<span class="segBody" onclick="onSegClick(this.parentElement)"></span>' +
+				'</div>' +
+				'<div name="3" class="segH" style="top: 50%">' +
+				'	<span class="segPartA"></span>' +
+				'	<span class="segPartB"></span>' +
+				'	<span class="segBody" onclick="onSegClick(this.parentElement)"></span></div>' +
+				'<div name="4" class="segH" style="bottom: 0;">' +
+				'	<span class="segPartA"></span>' +
+				'	<span class="segPartB"></span>' +
+				'	<span class="segBody" onclick="onSegClick(this.parentElement)"></span></div>' +
+				'<div name="5" class="segV" style="right: 0; top: 0;">' +
+				'	<span class="segPartA"></span>' +
+				'	<span class="segPartB"></span>' +
+				'	<span class="segBody" onclick="onSegClick(this.parentElement)"></span>' +
+				'</div>' +
+				'<div name="6" class="segV" style="right: 0; bottom: calc(var(--segSize) * 2);">' +
+				'	<span class="segPartA"></span>' +
+				'	<span class="segPartB"></span>' +
+				'	<span class="segBody" onclick="onSegClick(this.parentElement)"></span>' +
+				'</div>';
+			
+			var digitEl = document.createElement('div');
+			digitEl.className = 'digit';
+			digitEl.id = 'digit' + digitId;
+			digitEl.innerHTML = digitHtml;
+			document.getElementById('container').appendChild(digitEl);
+			
+			return digitEl;
+		}
+		
+		function createOperatorElement(op) {
+			var opEl = document.createElement('div');
+			opEl.className = 'operator';
+			opEl.innerHTML = '<img style="width: 100%; height: 100%;" src="' + op + '.png" />';
+			document.getElementById('container').appendChild(opEl);
+		}
+
+		var questionStr = null;
+		var questionElements = [];
+		var questionWidthFactor = 1;
+		
+		function parseQuestionIntoDigitsAndOps() {
+			if (questionStr)
+				return;
+			
+			var url = window.location.href;
+			// console.log(url);
+			var qIdx = url.indexOf('?q=');
+			if (qIdx == -1)
+				qIdx = url.indexOf('&q=');
+			
+			if (qIdx == -1) {
+				questionStr = "";
+			}
+			else {
+				questionStr = url.substring(qIdx + 3);
+			}
+
+					
+			// Check if string is legal
+			var isLegal = questionStr.length > 0;
+			var equalOpCount = 0;
+			
+			for (var i = 0; i < questionStr.length; i++) {
+				var c = questionStr.charAt(i);
+				
+				if (!isDigit(c) && getOpName(c) == null) {
+					isLegal = false;
+					break;
+				}
+			}
+
+			if (!evalEqualitySides(questionStr))
+				isLegal = false;
+			
+			if (!isLegal)
+				questionStr = "3=5";
+
+			questionWidthFactor = 0;
+			
+			// Create elements for digits and ops
+			for (var i = 0; i < questionStr.length; i++) {
+				var c = questionStr.charAt(i);
+
+				if (isDigit(c)) {
+					questionElements.push(createDigitElement());
+					questionWidthFactor += 1.425;
+				}
+				else {
+					questionElements.push(createOperatorElement(getOpName(c)));
+					questionWidthFactor += 1.375;
+				}
+			}
+		}
+		
+		function evalEqualitySides(equalityStr) {
+			var idx = equalityStr.indexOf('=');
+			if (idx == -1)
+				return null;
+				
+			var L = equalityStr.substring(0, idx);
+			var R = equalityStr.substring(idx + 1);
+			
+			// fix division operator
+			L = L.replace(':', '/');
+			R = R.replace(':', '/');
+			
+			var sides = [];
+			
+			try {
+				var v = eval(L);
+				
+				if (isInteger(v))
+					sides.push(v);
+				else
+					return null;
+			}
+			catch (err) {
+				return null;
+			}
+
+			try {
+				var v = eval(R);
+				
+				if (isInteger(v))
+					sides.push(v);
+				else
+					return null;
+			}
+			catch (err) {
+				return null;
+			}
+		
+			return sides;
+		}
+		
+		function isInteger(x) {
+			return (typeof x === 'number') ;
+		}
+		
+		function isDigit(c) {
+			return ('0' <= c && c <= '9');
+		}
+		
+		function getOpName(c) {
+			var opName = null;
+			
+			switch (c) {
+				case '+':
+					opName = 'plus';
+					break;
+				case '-':
+					opName = 'minus';
+					break;
+				case '*':
+					opName = 'mult';
+					break;
+				case '/':
+				case ':':
+					opName = 'division';
+					break;
+				case '=':
+					opName = 'equal';
+					break;
+			}
+			
+			return opName;
+		}
+
+		function readQuestion() {
+			for (var i = 0; i < questionStr.length; i++) {
+				var c = questionStr.charAt(i);
+
+				if (isDigit(c))
+					setDigit(questionElements[i], parseInt(c));
+			}
+		}
+		
+		// sendMessage
+		// this function is called with the result of the script. it represents the "answer" to the questionElements
+		// this is what the receiving side should look like 
+		
+		// document.takeQustionScriptAnswer = r => {
+		//  	var el = document.getElementsByClassName('formulas_number')[0];
+		//  	el.value = r;
+		// }
+
+		function sendMessage(r) {
+			try {
+				parent.document.takeQustionScriptAnswer(r);
+			}
+			catch (err) {
+				console.log(err);
+			}
+		}
+		
+		function checkAnswer() {
+			if (!validateAnswer())
+				return;
+			
+			isSolved = true;
+			elBtnReset.value = 'הצלחתם!';
+			elBtnReset.classList.add("solved");
+			sendMessage(1);
+		}
+		
+		function validateAnswer() {
+			var answer = '';
+			for (var i = 0; i < questionStr.length; i++) {
+				var c = questionStr.charAt(i);
+
+				if (!isDigit(c)) {
+					answer += c;
+					continue;
+				}
+				
+				var digitVal = readDigitSegs(questionElements[i]);
+				if (digitVal == -1)
+					return false;
+				answer += digitVal;
+			}
+			
+			var sides = evalEqualitySides(answer);
+			return sides[0] == sides[1];
+		}
+		
+		parseQuestionIntoDigitsAndOps();
+		resetSticks();
+		
+		function getViewport() {
+			var viewPortWidth;
+			var viewPortHeight;
+
+			// the more standards compliant browsers (mozilla/netscape/opera/IE7) use window.innerWidth and window.innerHeight
+			if (typeof window.innerWidth != 'undefined')
+			{
+				viewPortWidth = window.innerWidth;
+				viewPortHeight = window.innerHeight;
+			}
+			// IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)
+			else if (typeof document.documentElement != 'undefined' &&
+					 typeof document.documentElement.clientWidth != 'undefined' &&
+					 document.documentElement.clientWidth != 0)
+			{
+				viewPortWidth = document.documentElement.clientWidth;
+				viewPortHeight = document.documentElement.clientHeight;
+			}
+			// older versions of IE
+			else
+			{
+				var b = (document.body || document.getElementsByTagName('body')[0]);
+				viewPortWidth = b.clientWidth;
+				viewPortHeight = b.clientHeight;
+			}
+		
+			return [viewPortWidth, viewPortHeight];
+		}
+
+		function onResize() {
+			var viewport = getViewport();
+			var w = viewport[0];
+			var h = viewport[1];
+			
+			var digW = (h - 20) * 0.25;			
+			var altDigW = w / questionWidthFactor;
+			if (digW > altDigW) {
+				digW = altDigW;
+			}
+			digW -= digW % 10;
+			
+			var segPad = digW * 0.025;
+			segPad -= segPad % 1;
+			if (segPad < 1)
+				segPad = 1;
+				
+			document.documentElement.style.setProperty('--digitWidth', digW + 'px');
+			document.documentElement.style.setProperty('--segPad', segPad + 'px')
+		}
+		
+		window.addEventListener('resize', onResize);
+		onResize();
+	</script>
+</body>
+</html>
