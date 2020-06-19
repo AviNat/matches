@@ -5,33 +5,33 @@
 	<style>
 	:root {
 		--digitWidth: 80px;
-		--segSize: calc(let(--digitWidth) * 0.1);
+		--segSize: calc(var(--digitWidth) * 0.1);
 		--segPad: 2px;
 	}
 	
 	.operator {
 		position: relative;
-		width: calc(let(--digitWidth) * 0.75);
-		height: calc(let(--digitWidth) * 0.75);
-		margin: calc(2 * let(--segSize) + let(--segPad));
-		top: calc(let(--digitWidth) - let(--digitWidth) * 0.375);
+		width: calc(var(--digitWidth) * 0.75);
+		height: calc(var(--digitWidth) * 0.75);
+		margin: calc(2 * var(--segSize) + var(--segPad));
+		top: calc(var(--digitWidth) - var(--digitWidth) * 0.375);
 		float: left;
 	}
 	
 	.digit {
 		position: relative;
-		width: let(--digitWidth);
-		height: calc(let(--digitWidth) * 2);
-		margin: calc(2 * let(--segSize) + let(--segPad));
+		width: var(--digitWidth);
+		height: calc(var(--digitWidth) * 2);
+		margin: calc(2 * var(--segSize) + var(--segPad));
 		float: left;
 	}
 
 	.segH {
 		display: block;
 		position: absolute;
-		width: calc(100% - (let(--segSize) + let(--segPad)) * 2);
+		width: calc(100% - (var(--segSize) + var(--segPad)) * 2);
 		height: 0;
-		margin: 0 let(--segPad);
+		margin: 0 var(--segPad);
 	}
 
 	.segH span {
@@ -44,31 +44,31 @@
 
 	.segH .segBody {
 		width: 100%;
-		height: calc(let(--segSize) * 2);
-		top: calc(-1 * let(--segSize));
-		left: calc(let(--segSize));
+		height: calc(var(--segSize) * 2);
+		top: calc(-1 * var(--segSize));
+		left: calc(var(--segSize));
 	}
 	
 	.segH .segPartA {
-		top: calc(-1 * let(--segSize));
-		border-bottom: let(--segSize) solid dodgerblue;
-		border-left: let(--segSize) solid transparent;
-		border-right: let(--segSize) solid transparent;
+		top: calc(-1 * var(--segSize));
+		border-bottom: var(--segSize) solid dodgerblue;
+		border-left: var(--segSize) solid transparent;
+		border-right: var(--segSize) solid transparent;
 	}
 
 	.segH .segPartB {
 		top: 0;
-		border-top: let(--segSize) solid dodgerblue;
-		border-left: let(--segSize) solid transparent;
-		border-right: let(--segSize) solid transparent;
+		border-top: var(--segSize) solid dodgerblue;
+		border-left: var(--segSize) solid transparent;
+		border-right: var(--segSize) solid transparent;
 	}
 
 	.segV {
 		display: block;
 		position: absolute;
-		height: calc(50% - (let(--segSize) + let(--segPad)) * 2);
+		height: calc(50% - (var(--segSize) + var(--segPad)) * 2);
 		width: 0;
-		margin: let(--segPad) 0;
+		margin: var(--segPad) 0;
 	}
 
 	.segV span {
@@ -80,24 +80,24 @@
 	}
 
 	.segV .segBody {
-		width: calc(let(--segSize) * 2);
+		width: calc(var(--segSize) * 2);
 		height: 100%;
-		top: calc(let(--segSize));
-		left: calc(let(--segSize) * -1);
+		top: calc(var(--segSize));
+		left: calc(var(--segSize) * -1);
 	}
 	
 	.segV .segPartA {
-		left: calc(-1 * let(--segSize));
-		border-right: let(--segSize) solid dodgerblue;
-		border-top: let(--segSize) solid transparent;
-		border-bottom: let(--segSize) solid transparent;
+		left: calc(-1 * var(--segSize));
+		border-right: var(--segSize) solid dodgerblue;
+		border-top: var(--segSize) solid transparent;
+		border-bottom: var(--segSize) solid transparent;
 	}
 
 	.segV .segPartB {
 		left: 0;
-		border-left: let(--segSize) solid dodgerblue;
-		border-top: let(--segSize) solid transparent;
-		border-bottom: let(--segSize) solid transparent;
+		border-left: var(--segSize) solid dodgerblue;
+		border-top: var(--segSize) solid transparent;
+		border-bottom: var(--segSize) solid transparent;
 	}
 	
 	.seg-off {
@@ -107,8 +107,8 @@
 	.holdingZone {
 		display: table;
 		position: relative;
-		width: calc(let(--digitWidth));
-		margin: calc(let(--segSize) * 4) auto calc(let(--segSize) * 3) auto;
+		width: calc(var(--digitWidth));
+		margin: calc(var(--segSize) * 4) auto calc(var(--segSize) * 3) auto;
 	}
 	
 	.button {
@@ -152,14 +152,14 @@
 		<div name="holdIndicator" class="segH" style="left: 0; top: 50%;">
 			<span class="segPartA"></span>
 			<span class="segPartB"></span>
-			<span style="left: let(--segSize); top: -10px; text-align: center;" onmousedown="return false;">
+			<span style="left: var(--segSize); top: -10px; text-align: center;" onmousedown="return false;">
 				<strong>?</strong>
 			</span>
 		</div>
 	</div>
 	<div id="container" style="display: table; margin: 0 auto;">
 	</div>
-	<div style="display: table; margin: calc(let(--segSize) * 2) auto 0 auto">
+	<div style="display: table; margin: calc(var(--segSize) * 2) auto 0 auto">
 		<input id="btnReset" type="button" class="button" dir="rtl" value="נסו שוב" onclick="resetSticks(); return false;">
 	</div>
 	<script type="text/javascript">
@@ -397,7 +397,7 @@
 				'	<span class="segPartB"></span>' +
 				'	<span class="segBody" onclick="onSegClick(this.parentElement)"></span>' +
 				'</div>' +
-				'<div name="1" class="segV" style="left: 0; bottom: calc(let(--segSize) * 2);">' +
+				'<div name="1" class="segV" style="left: 0; bottom: calc(var(--segSize) * 2);">' +
 				'	<span class="segPartA"></span>' +
 				'	<span class="segPartB"></span>' +
 				'	<span class="segBody" onclick="onSegClick(this.parentElement)"></span>' +
@@ -420,7 +420,7 @@
 				'	<span class="segPartB"></span>' +
 				'	<span class="segBody" onclick="onSegClick(this.parentElement)"></span>' +
 				'</div>' +
-				'<div name="6" class="segV" style="right: 0; bottom: calc(let(--segSize) * 2);">' +
+				'<div name="6" class="segV" style="right: 0; bottom: calc(var(--segSize) * 2);">' +
 				'	<span class="segPartA"></span>' +
 				'	<span class="segPartB"></span>' +
 				'	<span class="segBody" onclick="onSegClick(this.parentElement)"></span>' +
